@@ -17,8 +17,8 @@ MAX_RISK_DISCUSS_ROUNDS = 1
 
 # LLM provider and models
 LLM_PROVIDER = "google"
-QUICK_THINK_LLM = "gemini-2.5-flash"
-DEEP_THINK_LLM  = "gemini-2.5-flash"
+QUICK_THINK_LLM = "gemini-3.1-flash"
+DEEP_THINK_LLM  = "gemini-3.0-flash"
 
 # Thinking mode — always enabled (high)
 GOOGLE_THINKING_LEVEL = "high"
