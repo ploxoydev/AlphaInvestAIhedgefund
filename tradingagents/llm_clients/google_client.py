@@ -8,7 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
 
-_MAX_RATE_LIMIT_RETRIES = 5
+_MAX_RATE_LIMIT_RETRIES = 15
 
 
 def _countdown(wait_sec: int, attempt: int, total: int) -> None:
@@ -43,6 +43,8 @@ class NormalizedChatGoogleGenerativeAI(ChatGoogleGenerativeAI):
                 if is_rate_limit and attempt < _MAX_RATE_LIMIT_RETRIES - 1:
                     match = re.search(r"retry[_ ]in[^\d]*(\d+)", err_str, re.IGNORECASE)
                     wait_sec = int(match.group(1)) + 5 if match else 60
+                    # Add exponential backoff for heavy concurrency starvation
+                    wait_sec += attempt * 10
                     _countdown(wait_sec, attempt + 1, _MAX_RATE_LIMIT_RETRIES)
                 else:
                     raise
