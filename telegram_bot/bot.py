@@ -404,9 +404,10 @@ def register_handlers(dp: Dispatcher):
         # Rate limit check
         remaining = _rate_limited(user_id)
         if remaining is not None:
-            mins, secs = divmod(remaining, 60)
+            hours, rem = divmod(remaining, 3600)
+            mins, secs = divmod(rem, 60)
             await callback.answer(
-                f"⏳ Подожди {mins:02d}:{secs:02d} перед следующим запросом.",
+                f"⏳ Лимит: 1 анализ в 3 часа.\nПодожди {hours:02d}:{mins:02d}:{secs:02d} до следующего запроса.",
                 show_alert=True,
             )
             return
@@ -415,7 +416,7 @@ def register_handlers(dp: Dispatcher):
         async with _active_lock:
             if _active_count >= MAX_CONCURRENT:
                 await callback.answer(
-                    "🔄 Сервер занят. Попробуй через несколько минут.",
+                    "🔄 Сервер загружен (заняты все слоты).\nПодожди пару минут и попробуй снова.",
                     show_alert=True,
                 )
                 return
@@ -482,7 +483,7 @@ def register_handlers(dp: Dispatcher):
             "• 🛡️ Risk Management\n"
             "• 🏁 Итоговый сигнал + PDF отчёт\n\n"
             "**Ограничения:**\n"
-            "• 1 анализ в час на пользователя\n"
+            "• 1 анализ в 3 часа на пользователя\n"
             "• Время анализа: 5–15 минут\n"
             "• Формат тикера: `AAPL`, `SBER.ME`, `7203.T`",
             parse_mode=ParseMode.MARKDOWN,

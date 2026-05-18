@@ -23,11 +23,11 @@ DEEP_THINK_LLM  = "gemini-2.5-flash"
 # Thinking mode — always enabled (high)
 GOOGLE_THINKING_LEVEL = "high"
 
-# Rate limit: 1 analysis per user per hour
-RATE_LIMIT_SECONDS = 3600
+# Rate limit: 1 analysis per user per 3 hours
+RATE_LIMIT_SECONDS = 10800
 
 # Max concurrent analyses running at the same time
-MAX_CONCURRENT = 3
+MAX_CONCURRENT = 5
 
 # ── Language options (shown to user) ─────────────────────────────────────────
 LANGUAGES = {
