@@ -343,7 +343,7 @@ class TradingAgentsGraph:
             tid = thread_id(company_name, str(trade_date))
             args.setdefault("config", {}).setdefault("configurable", {})["thread_id"] = tid
 
-        final_state = {}
+        final_state = init_agent_state.copy()
         for chunk in self.graph.stream(init_agent_state, **args):
             for node_name, state_update in chunk.items():
                 if self.debug and "messages" in state_update and len(state_update["messages"]) > 0:
