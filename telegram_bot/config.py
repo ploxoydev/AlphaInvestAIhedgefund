@@ -15,11 +15,31 @@ ANALYSTS = ["market", "social", "news", "fundamentals"]
 MAX_DEBATE_ROUNDS = 1
 MAX_RISK_DISCUSS_ROUNDS = 1
 
-# LLM provider and models
-# gemini-2.0-flash: 1000 RPM free tier (vs 20 RPM for 2.5-flash)
+# LLM provider
 LLM_PROVIDER = "google"
-QUICK_THINK_LLM = "gemini-2.0-flash"
-DEEP_THINK_LLM  = "gemini-2.0-flash"
+
+# ── API Key rotation ──────────────────────────────────────────────────────────
+# Each key should be from a DIFFERENT Google Cloud project (separate quotas).
+# Add more keys as GOOGLE_API_KEY_2, GOOGLE_API_KEY_3, etc. in .env / Render env vars.
+import os as _os
+GOOGLE_API_KEYS: list[str] = [k for k in [
+    _os.getenv("GOOGLE_API_KEY", ""),
+    _os.getenv("GOOGLE_API_KEY_2", ""),
+    _os.getenv("GOOGLE_API_KEY_3", ""),
+] if k]
+
+# ── Model rotation ────────────────────────────────────────────────────────────
+# Each model has its own separate daily/minute quota.
+# On 429 exhaustion we rotate to the next model automatically.
+FALLBACK_MODELS: list[str] = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash-lite",
+]
+
+# Primary model defaults (first in rotation list)
+QUICK_THINK_LLM = FALLBACK_MODELS[0]
+DEEP_THINK_LLM  = FALLBACK_MODELS[0]
 
 # Thinking mode — always enabled (high)
 GOOGLE_THINKING_LEVEL = "high"

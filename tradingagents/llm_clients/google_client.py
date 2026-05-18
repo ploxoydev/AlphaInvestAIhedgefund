@@ -34,18 +34,47 @@ class NormalizedChatGoogleGenerativeAI(ChatGoogleGenerativeAI):
     """
 
     def invoke(self, input, config=None, **kwargs):
-        for attempt in range(_MAX_RATE_LIMIT_RETRIES):
+        """
+        Retry with automatic key + model rotation on 429 RESOURCE_EXHAUSTED.
+        Rotation order: try all models for current key, then switch key and repeat.
+        """
+        from telegram_bot.config import GOOGLE_API_KEYS, FALLBACK_MODELS
+
+        # Build (key, model) rotation pairs
+        keys   = GOOGLE_API_KEYS if GOOGLE_API_KEYS else [None]
+        models = FALLBACK_MODELS if FALLBACK_MODELS else [self.model]
+
+        rotation = [(k, m) for k in keys for m in models]
+
+        for attempt, (api_key, model_name) in enumerate(rotation):
             try:
+                # Patch key/model for this attempt
+                if api_key:
+                    self.google_api_key = api_key
+                if model_name:
+                    self.model = model_name
+
                 return normalize_content(super().invoke(input, config, **kwargs))
+
             except Exception as e:
                 err_str = str(e)
                 is_rate_limit = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
-                if is_rate_limit and attempt < _MAX_RATE_LIMIT_RETRIES - 1:
-                    match = re.search(r"retry[_ ]in[^\d]*(\d+)", err_str, re.IGNORECASE)
-                    wait_sec = int(match.group(1)) + 5 if match else 60
-                    # Add exponential backoff for heavy concurrency starvation
-                    wait_sec += attempt * 10
-                    _countdown(wait_sec, attempt + 1, _MAX_RATE_LIMIT_RETRIES)
+                is_daily_exhausted = "limit: 0" in err_str or "GenerateRequestsPerDay" in err_str
+
+                if is_rate_limit and attempt < len(rotation) - 1:
+                    next_key, next_model = rotation[attempt + 1]
+                    k_label = f"key…{next_key[-6:]}" if next_key else "same key"
+                    m_label = next_model or "same model"
+                    if is_daily_exhausted:
+                        sys.stderr.write(
+                            f"\r\033[33m⚡ Daily quota exhausted for {model_name} "
+                            f"→ switching to [{m_label} / {k_label}]\033[0m\n"
+                        )
+                        sys.stderr.flush()
+                    else:
+                        match = re.search(r"retry[_ ]in[^\d]*(\d+)", err_str, re.IGNORECASE)
+                        wait_sec = int(match.group(1)) + 5 if match else 30
+                        _countdown(wait_sec, attempt + 1, len(rotation))
                 else:
                     raise
 
