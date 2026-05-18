@@ -32,9 +32,9 @@ GOOGLE_API_KEYS: list[str] = [k for k in [
 # Each model has its own separate daily/minute quota.
 # On 429 exhaustion we rotate to the next model automatically.
 FALLBACK_MODELS: list[str] = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash",
+    "gemini-2.5-flash",      # 20 RPM / 250k TPM  (new & old projects)
+    "gemini-2.5-flash-lite", # lighter, higher limits
+    "gemini-1.5-flash",      # legacy but very high limits (1500 RPD)
 ]
 
 # Primary model defaults (first in rotation list)

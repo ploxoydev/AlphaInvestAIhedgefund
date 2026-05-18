@@ -59,13 +59,20 @@ class NormalizedChatGoogleGenerativeAI(ChatGoogleGenerativeAI):
             except Exception as e:
                 err_str = str(e)
                 is_rate_limit = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
+                is_not_found  = "404" in err_str or "NOT_FOUND" in err_str or "no longer available" in err_str
                 is_daily_exhausted = "limit: 0" in err_str or "GenerateRequestsPerDay" in err_str
 
-                if is_rate_limit and attempt < len(rotation) - 1:
+                if (is_rate_limit or is_not_found) and attempt < len(rotation) - 1:
                     next_key, next_model = rotation[attempt + 1]
                     k_label = f"key…{next_key[-6:]}" if next_key else "same key"
                     m_label = next_model or "same model"
-                    if is_daily_exhausted:
+                    if is_not_found:
+                        sys.stderr.write(
+                            f"\r\033[33m⚡ Model {model_name} not available "
+                            f"→ switching to [{m_label} / {k_label}]\033[0m\n"
+                        )
+                        sys.stderr.flush()
+                    elif is_daily_exhausted:
                         sys.stderr.write(
                             f"\r\033[33m⚡ Daily quota exhausted for {model_name} "
                             f"→ switching to [{m_label} / {k_label}]\033[0m\n"
