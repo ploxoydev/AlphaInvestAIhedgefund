@@ -50,6 +50,12 @@ RATE_LIMIT_SECONDS = 10800
 # Max concurrent analyses running at the same time
 MAX_CONCURRENT = 5
 
+# ── Creator whitelist (no rate limits) ───────────────────────────────────────
+# Telegram usernames (without @) — these users bypass rate limiting completely
+WHITELIST_USERNAMES: set[str] = {
+    "plxrck",   # creator / admin
+}
+
 # ── Language options (shown to user) ─────────────────────────────────────────
 LANGUAGES = {
     "🇷🇺 Русский":    "Russian",

@@ -44,6 +44,7 @@ from telegram_bot.config import (
     MAX_RISK_DISCUSS_ROUNDS,
     QUICK_THINK_LLM,
     RATE_LIMIT_SECONDS,
+    WHITELIST_USERNAMES,
 )
 from telegram_bot.keyboards import cancel_keyboard, confirm_keyboard, language_keyboard
 from telegram_bot.pdf_generator import markdown_to_pdf, markdown_to_txt
@@ -401,9 +402,13 @@ def register_handlers(dp: Dispatcher):
         ticker   = data["ticker"]
         language = data["language"]
 
+        # Whitelist check — creator bypasses all rate limits
+        username = (callback.from_user.username or "").lower()
+        is_whitelisted = username in {u.lower() for u in WHITELIST_USERNAMES}
+
         # Rate limit check
         remaining = _rate_limited(user_id)
-        if remaining is not None:
+        if remaining is not None and not is_whitelisted:
             hours, rem = divmod(remaining, 3600)
             mins, secs = divmod(rem, 60)
             await callback.answer(
