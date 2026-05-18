@@ -52,6 +52,11 @@ class Propagator:
             "fundamentals_report": "",
             "sentiment_report": "",
             "news_report": "",
+            # Multi-Timeframe Consensus pipeline
+            "multi_timeframe_report": "",
+            "consensus_report": "",
+            "consensus_signal": "",
+            "consensus_score": 0,
         }
 
     def get_graph_args(self, callbacks: Optional[List] = None) -> Dict[str, Any]:

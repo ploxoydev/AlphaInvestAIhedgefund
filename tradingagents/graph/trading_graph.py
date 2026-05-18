@@ -389,6 +389,11 @@ class TradingAgentsGraph:
             "sentiment_report": final_state["sentiment_report"],
             "news_report": final_state["news_report"],
             "fundamentals_report": final_state["fundamentals_report"],
+            # Multi-Timeframe Consensus pipeline outputs
+            "multi_timeframe_report": final_state.get("multi_timeframe_report", ""),
+            "consensus_report": final_state.get("consensus_report", ""),
+            "consensus_signal": final_state.get("consensus_signal", ""),
+            "consensus_score": final_state.get("consensus_score", 0),
             "investment_debate_state": {
                 "bull_history": final_state["investment_debate_state"]["bull_history"],
                 "bear_history": final_state["investment_debate_state"]["bear_history"],

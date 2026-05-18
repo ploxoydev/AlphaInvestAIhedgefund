@@ -1,0 +1,4 @@
+# Telegram Bot dependencies
+aiogram==3.13.1
+markdown2==2.5.1
+weasyprint==62.3

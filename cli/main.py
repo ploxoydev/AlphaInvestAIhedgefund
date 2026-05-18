@@ -1,5 +1,8 @@
 from typing import Optional
 import datetime
+import os
+import re
+import subprocess
 import typer
 import questionary
 from pathlib import Path
@@ -40,6 +43,7 @@ app = typer.Typer(
 class MessageBuffer:
     # Fixed teams that always run (not user-selectable)
     FIXED_AGENTS = {
+        "Multi-TF Consensus": ["Multi Timeframe Analyst", "Consensus Agent"],
         "Research Team": ["Bull Researcher", "Bear Researcher", "Research Manager"],
         "Trading Team": ["Trader"],
         "Risk Management": ["Aggressive Analyst", "Neutral Analyst", "Conservative Analyst"],
@@ -62,6 +66,8 @@ class MessageBuffer:
         "sentiment_report": ("social", "Sentiment Analyst"),
         "news_report": ("news", "News Analyst"),
         "fundamentals_report": ("fundamentals", "Fundamentals Analyst"),
+        "multi_timeframe_report": (None, "Multi Timeframe Analyst"),
+        "consensus_report": (None, "Consensus Agent"),
         "investment_plan": (None, "Research Manager"),
         "trader_investment_plan": (None, "Trader"),
         "final_trade_decision": (None, "Portfolio Manager"),
@@ -166,6 +172,8 @@ class MessageBuffer:
         if latest_section and latest_content:
             # Format the current section for display
             section_titles = {
+                "multi_timeframe_report": "📊 Multi-Timeframe Analysis",
+                "consensus_report": "🎯 Consensus Signal",
                 "market_report": "Market Analysis",
                 "sentiment_report": "Social Sentiment",
                 "news_report": "News Analysis",
@@ -183,6 +191,18 @@ class MessageBuffer:
 
     def _update_final_report(self):
         report_parts = []
+
+        # Multi-Timeframe Consensus Reports
+        if any(self.report_sections.get(s) for s in ["multi_timeframe_report", "consensus_report"]):
+            report_parts.append("## Multi-Timeframe Consensus Analysis")
+            if self.report_sections.get("multi_timeframe_report"):
+                report_parts.append(
+                    f"### Multi-Timeframe Technical Analysis\n{self.report_sections['multi_timeframe_report']}"
+                )
+            if self.report_sections.get("consensus_report"):
+                report_parts.append(
+                    f"### Consensus Signal\n{self.report_sections['consensus_report']}"
+                )
 
         # Analyst Team Reports - use .get() to handle missing sections
         analyst_sections = ["market_report", "sentiment_report", "news_report", "fundamentals_report"]
@@ -284,6 +304,7 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
             "News Analyst",
             "Fundamentals Analyst",
         ],
+        "Multi-TF Consensus": ["Multi Timeframe Analyst", "Consensus Agent"],
         "Research Team": ["Bull Researcher", "Bear Researcher", "Research Manager"],
         "Trading Team": ["Trader"],
         "Risk Management": ["Aggressive Analyst", "Neutral Analyst", "Conservative Analyst"],
@@ -675,6 +696,28 @@ def save_report_to_disk(final_state, ticker: str, save_path: Path):
     save_path.mkdir(parents=True, exist_ok=True)
     sections = []
 
+    # 0. Multi-Timeframe Consensus (always first — top-level signal)
+    consensus_dir = save_path / "0_consensus"
+    consensus_parts = []
+    if final_state.get("multi_timeframe_report"):
+        consensus_dir.mkdir(exist_ok=True)
+        (consensus_dir / "multi_timeframe.md").write_text(
+            final_state["multi_timeframe_report"], encoding="utf-8"
+        )
+        consensus_parts.append(("Multi-Timeframe Analyst", final_state["multi_timeframe_report"]))
+    if final_state.get("consensus_report"):
+        consensus_dir.mkdir(exist_ok=True)
+        signal = final_state.get("consensus_signal", "")
+        score = final_state.get("consensus_score", 0)
+        header = f"**Signal**: {signal}  |  **Score**: {score:+d}/6\n\n"
+        (consensus_dir / "consensus.md").write_text(
+            header + final_state["consensus_report"], encoding="utf-8"
+        )
+        consensus_parts.append(("Consensus Agent", final_state["consensus_report"]))
+    if consensus_parts:
+        content = "\n\n".join(f"### {name}\n{text}" for name, text in consensus_parts)
+        sections.append(f"## 0. Multi-Timeframe Consensus\n\n{content}")
+
     # 1. Analysts
     analysts_dir = save_path / "1_analysts"
     analyst_parts = []
@@ -756,14 +799,184 @@ def save_report_to_disk(final_state, ticker: str, save_path: Path):
 
     # Write consolidated report
     header = f"# Trading Analysis Report: {ticker}\n\nGenerated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-    (save_path / "complete_report.md").write_text(header + "\n\n".join(sections), encoding="utf-8")
+    footer = "\n\n---\n\n*ALPHA INVEST*"
+    (save_path / "complete_report.md").write_text(header + "\n\n".join(sections) + footer, encoding="utf-8")
     return save_path / "complete_report.md"
+
+
+def save_report_to_pdf(final_state, ticker: str, pdf_path: Path) -> Path:
+    """Export the complete analysis report as a styled PDF with full Unicode/Cyrillic support."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, PageBreak
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    # Register Arial (supports Cyrillic and all Unicode on Windows)
+    fn  = "ReportArial"
+    fnb = "ReportArialBold"
+    registered = False
+    for rp, rb in [
+        (r"C:\Windows\Fonts\arial.ttf",  r"C:\Windows\Fonts\arialbd.ttf"),
+        (r"C:\Windows\Fonts\Arial.ttf",  r"C:\Windows\Fonts\ArialBD.ttf"),
+    ]:
+        if Path(rp).exists() and Path(rb).exists():
+            pdfmetrics.registerFont(TTFont(fn,  rp))
+            pdfmetrics.registerFont(TTFont(fnb, rb))
+            registered = True
+            break
+    if not registered:
+        import reportlab as _rl
+        rl_dir = Path(_rl.__file__).parent / "fonts"
+        dv  = rl_dir / "DejaVuSans.ttf"
+        dvb = rl_dir / "DejaVuSans-Bold.ttf"
+        if dv.exists():
+            pdfmetrics.registerFont(TTFont(fn,  str(dv)))
+            pdfmetrics.registerFont(TTFont(fnb, str(dvb)))
+            registered = True
+    if not registered:
+        fn, fnb = "Helvetica", "Helvetica-Bold"
+
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    doc = SimpleDocTemplate(
+        str(pdf_path), pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm,  bottomMargin=2*cm,
+    )
+
+    def ps(name, font, size, hex_color, sb=0, sa=4, leading=None, align=None):
+        kw = dict(fontName=font, fontSize=size,
+                  textColor=colors.HexColor(hex_color),
+                  spaceBefore=sb, spaceAfter=sa)
+        if leading:  kw["leading"] = leading
+        if align is not None: kw["alignment"] = align
+        return ParagraphStyle(name, **kw)
+
+    s_title   = ps("PT",  fnb, 20, "#1a1a2e", sa=6,  align=TA_CENTER)
+    s_sub     = ps("PS",  fn,  10, "#555555", sa=18, align=TA_CENTER)
+    s_section = ps("PSec",fnb, 14, "#0a3d62", sb=16, sa=6)
+    s_agent   = ps("PAg", fnb, 11, "#1e3799", sb=10, sa=4)
+    s_body    = ps("PB",  fn,   9, "#222222", sa=3,  leading=14)
+
+    def clean(text: str) -> str:
+        if not text:
+            return ""
+        text = re.sub(r"#{1,6}\s*", "", text)
+        text = re.sub(r"\*{1,2}([^*]+)\*{1,2}", r"\1", text)
+        text = re.sub(r"`([^`]+)`", r"\1", text)
+        text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+        text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return text.strip()
+
+    def add_section(story, title, parts):
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#0a3d62")))
+        story.append(Paragraph(title, s_section))
+        for agent_name, content in parts:
+            story.append(Paragraph(agent_name, s_agent))
+            for line in content.splitlines():
+                line = clean(line)
+                if line:
+                    try:
+                        story.append(Paragraph(line, s_body))
+                    except Exception:
+                        safe = line.encode("ascii", "replace").decode()
+                        safe = safe.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                        story.append(Paragraph(safe, s_body))
+            story.append(Spacer(1, 6))
+
+    s_signature = ps("PSig", fnb, 13, "#0a3d62", sb=30, sa=4, align=TA_CENTER)
+    s_sig_line  = ps("PSL",  fn,   9, "#888888", sb=2,  sa=0, align=TA_CENTER)
+
+    story = []
+    story.append(Paragraph(f"Trading Analysis Report: {ticker}", s_title))
+    story.append(Paragraph(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", s_sub))
+    story.append(Spacer(1, 10))
+
+    # 0. Multi-Timeframe Consensus
+    consensus_parts_pdf = []
+    if final_state.get("multi_timeframe_report"):
+        consensus_parts_pdf.append(("Multi-Timeframe Analyst", final_state["multi_timeframe_report"]))
+    if final_state.get("consensus_report"):
+        signal = final_state.get("consensus_signal", "")
+        score = final_state.get("consensus_score", 0)
+        header_line = f"Signal: {signal}  |  Score: {score:+d}/6"
+        consensus_parts_pdf.append(("Consensus Agent", header_line + "\n\n" + final_state["consensus_report"]))
+    if consensus_parts_pdf:
+        add_section(story, "0. Multi-Timeframe Consensus", consensus_parts_pdf)
+
+    analyst_parts = []
+    for key, label in [("market_report", "Market Analyst"), ("sentiment_report", "Sentiment Analyst"),
+                       ("news_report", "News Analyst"), ("fundamentals_report", "Fundamentals Analyst")]:
+        if final_state.get(key):
+            analyst_parts.append((label, final_state[key]))
+    if analyst_parts:
+        add_section(story, "I. Analyst Team Reports", analyst_parts)
+
+    debate = final_state.get("investment_debate_state", {})
+    research_parts = []
+    for key, label in [("bull_history", "Bull Researcher"), ("bear_history", "Bear Researcher"),
+                       ("judge_decision", "Research Manager")]:
+        if debate.get(key):
+            research_parts.append((label, debate[key]))
+    if research_parts:
+        story.append(PageBreak())
+        add_section(story, "II. Research Team Decision", research_parts)
+
+    if final_state.get("trader_investment_plan"):
+        story.append(PageBreak())
+        add_section(story, "III. Trading Team Plan", [("Trader", final_state["trader_investment_plan"])])
+
+    risk = final_state.get("risk_debate_state", {})
+    risk_parts = []
+    for key, label in [("aggressive_history", "Aggressive Analyst"), ("conservative_history", "Conservative Analyst"),
+                       ("neutral_history", "Neutral Analyst")]:
+        if risk.get(key):
+            risk_parts.append((label, risk[key]))
+    if risk_parts:
+        story.append(PageBreak())
+        add_section(story, "IV. Risk Management Team", risk_parts)
+
+    if risk.get("judge_decision"):
+        add_section(story, "V. Portfolio Manager Decision", [("Portfolio Manager", risk["judge_decision"])])
+
+    # Signature footer
+    story.append(Spacer(1, 20))
+    story.append(HRFlowable(width="60%", thickness=1, color=colors.HexColor("#0a3d62"), hAlign="CENTER"))
+    story.append(Paragraph("ALPHA INVEST", s_signature))
+    story.append(Paragraph("Powered by TradingAgents AI Framework", s_sig_line))
+
+    doc.build(story)
+    return pdf_path
+
 
 
 def display_complete_report(final_state):
     """Display the complete analysis report sequentially (avoids truncation)."""
     console.print()
     console.print(Rule("Complete Analysis Report", style="bold green"))
+
+    # 0. Multi-Timeframe Consensus (top of report)
+    consensus_display = []
+    if final_state.get("multi_timeframe_report"):
+        consensus_display.append(("Multi-Timeframe Analyst", final_state["multi_timeframe_report"]))
+    if final_state.get("consensus_report"):
+        signal = final_state.get("consensus_signal", "")
+        score = final_state.get("consensus_score", 0)
+        consensus_display.append(("Consensus Agent", final_state["consensus_report"]))
+    if consensus_display:
+        console.print(
+            Panel(
+                f"[bold]🎯 Multi-Timeframe Consensus[/bold]\n"
+                f"Signal: [bold green]{final_state.get('consensus_signal', 'N/A')}[/bold green]  "
+                f"Score: [bold]{final_state.get('consensus_score', 0):+d}/6[/bold]",
+                border_style="bright_cyan",
+            )
+        )
+        for title, content in consensus_display:
+            console.print(Panel(Markdown(content), title=title, border_style="cyan", padding=(1, 2)))
 
     # I. Analyst Team Reports
     analysts = []
@@ -842,6 +1055,8 @@ ANALYST_REPORT_MAP = {
     "news": "news_report",
     "fundamentals": "fundamentals_report",
 }
+# Fixed consensus agents always appear after all standard analysts
+CONSENSUS_AGENT_NAMES = ["Multi Timeframe Analyst", "Consensus Agent"]
 
 
 def update_analyst_statuses(message_buffer, chunk):
@@ -880,9 +1095,22 @@ def update_analyst_statuses(message_buffer, chunk):
         else:
             message_buffer.update_agent_status(agent_name, "pending")
 
-    # When all analysts complete, transition research team to in_progress
+    # When all standard analysts complete, activate Multi-Timeframe pipeline
     if not found_active and selected:
-        if message_buffer.agent_status.get("Bull Researcher") == "pending":
+        # Check if multi-timeframe already has a report
+        has_mtf = bool(message_buffer.report_sections.get("multi_timeframe_report"))
+        has_consensus = bool(message_buffer.report_sections.get("consensus_report"))
+        if not has_mtf:
+            if message_buffer.agent_status.get("Multi Timeframe Analyst") != "completed":
+                message_buffer.update_agent_status("Multi Timeframe Analyst", "in_progress")
+        elif not has_consensus:
+            if message_buffer.agent_status.get("Multi Timeframe Analyst") != "completed":
+                message_buffer.update_agent_status("Multi Timeframe Analyst", "completed")
+            if message_buffer.agent_status.get("Consensus Agent") != "completed":
+                message_buffer.update_agent_status("Consensus Agent", "in_progress")
+        elif message_buffer.agent_status.get("Bull Researcher") == "pending":
+            message_buffer.update_agent_status("Multi Timeframe Analyst", "completed")
+            message_buffer.update_agent_status("Consensus Agent", "completed")
             message_buffer.update_agent_status("Bull Researcher", "in_progress")
 
 def extract_content_string(content):
@@ -1135,6 +1363,21 @@ def run_analysis(checkpoint: bool = False):
                     update_research_team_status("completed")
                     message_buffer.update_agent_status("Trader", "in_progress")
 
+            # Multi-Timeframe Consensus pipeline tracking
+            if chunk.get("multi_timeframe_report"):
+                message_buffer.update_report_section(
+                    "multi_timeframe_report", chunk["multi_timeframe_report"]
+                )
+                message_buffer.update_agent_status("Multi Timeframe Analyst", "completed")
+                message_buffer.update_agent_status("Consensus Agent", "in_progress")
+
+            if chunk.get("consensus_report"):
+                message_buffer.update_report_section(
+                    "consensus_report", chunk["consensus_report"]
+                )
+                message_buffer.update_agent_status("Consensus Agent", "completed")
+                message_buffer.update_agent_status("Bull Researcher", "in_progress")
+
             # Trading Team
             if chunk.get("trader_investment_plan"):
                 message_buffer.update_report_section(
@@ -1225,6 +1468,15 @@ def run_analysis(checkpoint: bool = False):
             report_file = save_report_to_disk(final_state, selections["ticker"], save_path)
             console.print(f"\n[green]✓ Report saved to:[/green] {save_path.resolve()}")
             console.print(f"  [dim]Complete report:[/dim] {report_file.name}")
+
+            # Auto-generate PDF in the same folder as the MD report
+            pdf_path = save_path / f"{selections['ticker']}_{timestamp}_report.pdf"
+            try:
+                result_pdf = save_report_to_pdf(final_state, selections["ticker"], pdf_path)
+                console.print(f"  [bold green]✓ PDF report:[/bold green] {result_pdf.name}")
+                os.startfile(str(result_pdf.resolve()))
+            except Exception as pdf_err:
+                console.print(f"[yellow]⚠ PDF generation failed: {pdf_err}[/yellow]")
         except Exception as e:
             console.print(f"[red]Error saving report: {e}[/red]")
 

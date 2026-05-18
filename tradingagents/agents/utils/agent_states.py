@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from typing_extensions import TypedDict
 from langgraph.graph import MessagesState
 
@@ -56,6 +56,24 @@ class AgentState(MessagesState):
         str, "Report from the News Researcher of current world affairs"
     ]
     fundamentals_report: Annotated[str, "Report from the Fundamentals Researcher"]
+
+    # ── Multi-Timeframe Consensus pipeline ──────────────────────────────────
+    multi_timeframe_report: Annotated[
+        str,
+        "Detailed technical analysis across 1D / 1W / 1M / 1Y timeframes",
+    ]
+    consensus_report: Annotated[
+        str,
+        "Weighted-vote consensus report synthesizing all four timeframes",
+    ]
+    consensus_signal: Annotated[
+        str,
+        "Quantitative consensus signal: STRONG BUY / BUY / HOLD / SELL / STRONG SELL",
+    ]
+    consensus_score: Annotated[
+        int,
+        "Weighted consensus score in the range [-6, +6]",
+    ]
 
     # researcher team discussion step
     investment_debate_state: Annotated[

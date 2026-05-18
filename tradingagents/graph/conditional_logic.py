@@ -43,6 +43,15 @@ class ConditionalLogic:
             return "tools_fundamentals"
         return "Msg Clear Fundamentals"
 
+    def should_continue_multi_timeframe(self, state: AgentState):
+        """Multi-timeframe analyst never calls tools; route straight to message clear."""
+        # The analyst fetches all data directly — no tool-call loop needed.
+        return "Msg Clear Multi Timeframe"
+
+    def should_continue_consensus(self, state: AgentState):
+        """Consensus agent never calls tools; route straight to message clear."""
+        return "Msg Clear Consensus"
+
     def should_continue_debate(self, state: AgentState) -> str:
         """Determine if debate should continue."""
 

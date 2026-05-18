@@ -1,3 +1,6 @@
+import re
+import sys
+import time
 from typing import Any, Optional
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -5,16 +8,44 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
 
+_MAX_RATE_LIMIT_RETRIES = 5
+
+
+def _countdown(wait_sec: int, attempt: int, total: int) -> None:
+    """Print a live countdown to stderr so it shows through Rich Live display."""
+    for remaining in range(wait_sec, 0, -1):
+        sys.stderr.write(
+            f"\r\033[33m⏳ Rate limit (429) — attempt {attempt}/{total}. "
+            f"Retrying in {remaining:3d}s... \033[0m"
+        )
+        sys.stderr.flush()
+        time.sleep(1)
+    sys.stderr.write("\r" + " " * 70 + "\r")  # clear the line
+    sys.stderr.flush()
+
 
 class NormalizedChatGoogleGenerativeAI(ChatGoogleGenerativeAI):
     """ChatGoogleGenerativeAI with normalized content output.
 
     Gemini 3 models return content as list of typed blocks.
     This normalizes to string for consistent downstream handling.
+    Automatically retries on 429 RESOURCE_EXHAUSTED with the delay
+    suggested by the API (retryDelay field), up to _MAX_RATE_LIMIT_RETRIES times.
     """
 
     def invoke(self, input, config=None, **kwargs):
-        return normalize_content(super().invoke(input, config, **kwargs))
+        for attempt in range(_MAX_RATE_LIMIT_RETRIES):
+            try:
+                return normalize_content(super().invoke(input, config, **kwargs))
+            except Exception as e:
+                err_str = str(e)
+                is_rate_limit = "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
+                if is_rate_limit and attempt < _MAX_RATE_LIMIT_RETRIES - 1:
+                    match = re.search(r"retry[_ ]in[^\d]*(\d+)", err_str, re.IGNORECASE)
+                    wait_sec = int(match.group(1)) + 5 if match else 60
+                    _countdown(wait_sec, attempt + 1, _MAX_RATE_LIMIT_RETRIES)
+                else:
+                    raise
 
 
 class GoogleClient(BaseLLMClient):

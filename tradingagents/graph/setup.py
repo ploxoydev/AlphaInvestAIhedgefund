@@ -78,6 +78,10 @@ class GraphSetup:
             delete_nodes["fundamentals"] = create_msg_delete()
             tool_nodes["fundamentals"] = self.tool_nodes["fundamentals"]
 
+        # ── Multi-Timeframe Consensus pipeline (always active) ───────────────
+        multi_tf_node = create_multi_timeframe_analyst(self.quick_thinking_llm)
+        consensus_node = create_consensus_agent(self.quick_thinking_llm)
+
         # Create researcher and manager nodes
         bull_researcher_node = create_bull_researcher(self.quick_thinking_llm)
         bear_researcher_node = create_bear_researcher(self.quick_thinking_llm)
@@ -100,6 +104,12 @@ class GraphSetup:
                 f"Msg Clear {analyst_type.capitalize()}", delete_nodes[analyst_type]
             )
             workflow.add_node(f"tools_{analyst_type}", tool_nodes[analyst_type])
+
+        # Add Multi-Timeframe and Consensus nodes
+        workflow.add_node("Multi Timeframe Analyst", multi_tf_node)
+        workflow.add_node("Msg Clear Multi Timeframe", create_msg_delete())
+        workflow.add_node("Consensus Agent", consensus_node)
+        workflow.add_node("Msg Clear Consensus", create_msg_delete())
 
         # Add other nodes
         workflow.add_node("Bull Researcher", bull_researcher_node)
@@ -130,12 +140,27 @@ class GraphSetup:
             )
             workflow.add_edge(current_tools, current_analyst)
 
-            # Connect to next analyst or to Bull Researcher if this is the last analyst
+            # Connect to next analyst; last analyst goes to Multi-Timeframe
             if i < len(selected_analysts) - 1:
                 next_analyst = f"{selected_analysts[i+1].capitalize()} Analyst"
                 workflow.add_edge(current_clear, next_analyst)
             else:
-                workflow.add_edge(current_clear, "Bull Researcher")
+                # Last standard analyst → Multi-Timeframe Analyst
+                workflow.add_edge(current_clear, "Multi Timeframe Analyst")
+
+        # Wire Multi-Timeframe → Consensus → Bull Researcher
+        workflow.add_conditional_edges(
+            "Multi Timeframe Analyst",
+            self.conditional_logic.should_continue_multi_timeframe,
+            ["Msg Clear Multi Timeframe"],
+        )
+        workflow.add_edge("Msg Clear Multi Timeframe", "Consensus Agent")
+        workflow.add_conditional_edges(
+            "Consensus Agent",
+            self.conditional_logic.should_continue_consensus,
+            ["Msg Clear Consensus"],
+        )
+        workflow.add_edge("Msg Clear Consensus", "Bull Researcher")
 
         # Add remaining edges
         workflow.add_conditional_edges(
