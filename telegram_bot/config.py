@@ -33,8 +33,8 @@ GOOGLE_API_KEYS: list[str] = [k for k in [
 # On 429 exhaustion we rotate to the next model automatically.
 FALLBACK_MODELS: list[str] = [
     "gemini-2.0-flash",
-    "gemini-1.5-flash",
     "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
 ]
 
 # Primary model defaults (first in rotation list)
