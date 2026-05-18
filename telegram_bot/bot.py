@@ -382,7 +382,7 @@ def register_handlers(dp: Dispatcher):
             f"🌐 Язык отчёта: **{lang_label}**\n"
             f"📅 Дата: **{datetime.now().strftime('%Y-%m-%d')}**\n"
             f"👥 Аналитики: Market · News · Sentiment · Fundamentals\n"
-            f"⚡ Модели: Gemini 3.1 Flash / 3.0 Flash\n\n"
+            f"⚡ Модель: Gemini 2.5 Flash (Thinking)\n\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"⏱ Ожидаемое время анализа: **5–15 минут**\n\n"
             f"Запустить?",
