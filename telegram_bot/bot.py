@@ -239,7 +239,18 @@ async def _run_analysis(
                 debug=False,
                 config=config,
             )
-            final_state, signal = graph.propagate(ticker, trade_date)
+            
+            # Callback to update the state from the background thread
+            def _on_node_complete(node_name: str):
+                nonlocal current_agent
+                if node_name in ALL_AGENTS:
+                    if current_agent and current_agent not in completed:
+                        completed.append(current_agent)
+                    current_agent = node_name
+                    
+            final_state, signal = graph.propagate(
+                ticker, trade_date, progress_callback=_on_node_complete
+            )
             
             # Generate PDF synchronously inside the thread pool
             report_md = _build_report_markdown(final_state)

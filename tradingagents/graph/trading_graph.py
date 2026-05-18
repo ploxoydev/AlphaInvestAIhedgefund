@@ -291,7 +291,7 @@ class TradingAgentsGraph:
         if updates:
             self.memory_log.batch_update_with_outcomes(updates)
 
-    def propagate(self, company_name, trade_date):
+    def propagate(self, company_name, trade_date, progress_callback=None):
         """Run the trading agents graph for a company on a specific date.
 
         When ``checkpoint_enabled`` is set in config, the graph is recompiled
@@ -322,14 +322,14 @@ class TradingAgentsGraph:
                 logger.info("Starting fresh for %s on %s", company_name, trade_date)
 
         try:
-            return self._run_graph(company_name, trade_date)
+            return self._run_graph(company_name, trade_date, progress_callback)
         finally:
             if self._checkpointer_ctx is not None:
                 self._checkpointer_ctx.__exit__(None, None, None)
                 self._checkpointer_ctx = None
                 self.graph = self.workflow.compile()
 
-    def _run_graph(self, company_name, trade_date):
+    def _run_graph(self, company_name, trade_date, progress_callback=None):
         """Execute the graph and write the resulting state to disk and memory log."""
         # Initialize state — inject memory log context for PM.
         past_context = self.memory_log.get_past_context(company_name)
@@ -343,21 +343,18 @@ class TradingAgentsGraph:
             tid = thread_id(company_name, str(trade_date))
             args.setdefault("config", {}).setdefault("configurable", {})["thread_id"] = tid
 
-        if self.debug:
-            trace = []
-            for chunk in self.graph.stream(init_agent_state, **args):
-                if len(chunk["messages"]) == 0:
-                    pass
-                else:
-                    chunk["messages"][-1].pretty_print()
-                    trace.append(chunk)
-            # Streamed chunks are per-node deltas. Merge them so the returned
-            # state matches what graph.invoke() yields in the non-debug path.
-            final_state = {}
-            for chunk in trace:
-                final_state.update(chunk)
-        else:
-            final_state = self.graph.invoke(init_agent_state, **args)
+        final_state = {}
+        for chunk in self.graph.stream(init_agent_state, **args):
+            for node_name, state_update in chunk.items():
+                if self.debug and "messages" in state_update and len(state_update["messages"]) > 0:
+                    state_update["messages"][-1].pretty_print()
+                
+                if progress_callback:
+                    progress_callback(node_name)
+                
+                # Update final state with the latest changes
+                if isinstance(state_update, dict):
+                    final_state.update(state_update)
 
         # Store current state for reflection.
         self.curr_state = final_state
