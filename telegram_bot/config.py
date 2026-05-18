@@ -16,9 +16,10 @@ MAX_DEBATE_ROUNDS = 1
 MAX_RISK_DISCUSS_ROUNDS = 1
 
 # LLM provider and models
+# gemini-2.0-flash: 1000 RPM free tier (vs 20 RPM for 2.5-flash)
 LLM_PROVIDER = "google"
-QUICK_THINK_LLM = "gemini-2.5-flash"
-DEEP_THINK_LLM  = "gemini-2.5-flash"
+QUICK_THINK_LLM = "gemini-2.0-flash"
+DEEP_THINK_LLM  = "gemini-2.0-flash"
 
 # Thinking mode — always enabled (high)
 GOOGLE_THINKING_LEVEL = "high"
