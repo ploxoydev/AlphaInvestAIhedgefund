@@ -240,9 +240,15 @@ async def _run_analysis(
                 config=config,
             )
             final_state, signal = graph.propagate(ticker, trade_date)
-            return final_state, signal
+            
+            # Generate PDF synchronously inside the thread pool
+            report_md = _build_report_markdown(final_state)
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            pdf_b = markdown_to_pdf(report_md, ticker, date_str)
+            
+            return final_state, signal, report_md, date_str, pdf_b
 
-        final_state, signal = await loop.run_in_executor(None, _sync_run)
+        final_state, signal, report_md, date_str, pdf_bytes = await loop.run_in_executor(None, _sync_run)
 
         updater_task.cancel()
 
@@ -253,14 +259,9 @@ async def _run_analysis(
         await bot.edit_message_text(
             chat_id=chat_id,
             message_id=progress_msg_id,
-            text=f"✅ **Анализ завершён** — {mins:02d}:{secs:02d}\n\nГенерирую PDF отчет...",
+            text=f"✅ **Анализ завершён** — {mins:02d}:{secs:02d}\n\nОтправляю отчёт...",
             parse_mode=ParseMode.MARKDOWN,
         )
-
-        # Build and send report
-        report_md = _build_report_markdown(final_state)
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        pdf_bytes = markdown_to_pdf(report_md, ticker, date_str)
 
         if pdf_bytes:
             filename = f"ALPHA_INVEST_{ticker}_{date_str}.pdf"

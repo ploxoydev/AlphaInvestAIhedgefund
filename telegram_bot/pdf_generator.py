@@ -119,14 +119,18 @@ def markdown_to_pdf(markdown_text: str, ticker: str, date: str) -> bytes | None:
         logger.warning("weasyprint or markdown2 not installed — returning None")
         return None
 
-    html_body = markdown2.markdown(
-        markdown_text,
-        extras=["tables", "fenced-code-blocks", "strike", "header-ids"],
-    )
-    full_html = _HEADER_TEMPLATE.format(css=_CSS, body=html_body, date=date)
+    try:
+        html_body = markdown2.markdown(
+            markdown_text,
+            extras=["tables", "fenced-code-blocks", "strike", "header-ids"],
+        )
+        full_html = _HEADER_TEMPLATE.format(css=_CSS, body=html_body, date=date)
 
-    pdf_bytes = HTML(string=full_html).write_pdf()
-    return pdf_bytes
+        pdf_bytes = HTML(string=full_html).write_pdf()
+        return pdf_bytes
+    except Exception as e:
+        logger.error("Failed to generate PDF (possibly missing Pango/Cairo on Render): %s", e)
+        return None
 
 
 def markdown_to_txt(markdown_text: str) -> bytes:
