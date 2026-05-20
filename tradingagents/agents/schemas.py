@@ -198,7 +198,15 @@ class PortfolioDecision(BaseModel):
     )
     price_target: Optional[float] = Field(
         default=None,
-        description="Optional target price in the instrument's quote currency.",
+        description="Optional target price (take profit) in the instrument's quote currency.",
+    )
+    entry_price: Optional[float] = Field(
+        default=None,
+        description="Optional entry price in the instrument's quote currency.",
+    )
+    stop_loss: Optional[float] = Field(
+        default=None,
+        description="Optional stop-loss price in the instrument's quote currency.",
     )
     time_horizon: Optional[str] = Field(
         default=None,
@@ -221,8 +229,12 @@ def render_pm_decision(decision: PortfolioDecision) -> str:
         "",
         f"**Investment Thesis**: {decision.investment_thesis}",
     ]
+    if decision.entry_price is not None:
+        parts.extend(["", f"**Entry Price**: {decision.entry_price}"])
     if decision.price_target is not None:
         parts.extend(["", f"**Price Target**: {decision.price_target}"])
+    if decision.stop_loss is not None:
+        parts.extend(["", f"**Stop Loss**: {decision.stop_loss}"])
     if decision.time_horizon:
         parts.extend(["", f"**Time Horizon**: {decision.time_horizon}"])
     return "\n".join(parts)

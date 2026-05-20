@@ -255,11 +255,27 @@ async def _run_analysis(
             # Generate PDF synchronously inside the thread pool
             report_md = _build_report_markdown(final_state)
             date_str = datetime.now().strftime("%Y-%m-%d")
+            # Generate Chart
+            decision_text = final_state.get("final_trade_decision", "")
+            entry, tp, sl = None, None, None
+            if decision_text:
+                import re
+                m_entry = re.search(r'\*\*Entry Price\*\*:\s*([\d\.]+)', decision_text)
+                m_tp = re.search(r'\*\*Price Target\*\*:\s*([\d\.]+)', decision_text)
+                m_sl = re.search(r'\*\*Stop Loss\*\*:\s*([\d\.]+)', decision_text)
+                entry = float(m_entry.group(1)) if m_entry else None
+                tp = float(m_tp.group(1)) if m_tp else None
+                sl = float(m_sl.group(1)) if m_sl else None
+                
+            from telegram_bot.pdf_generator import markdown_to_pdf
             pdf_b = markdown_to_pdf(report_md, ticker, date_str)
             
-            return final_state, signal, report_md, date_str, pdf_b
+            from telegram_bot.chart_generator import generate_chart_with_levels
+            chart_bytes = generate_chart_with_levels(ticker, entry, tp, sl)
+            
+            return final_state, signal, report_md, date_str, pdf_b, chart_bytes
 
-        final_state, signal, report_md, date_str, pdf_bytes = await loop.run_in_executor(None, _sync_run)
+        final_state, signal, report_md, date_str, pdf_bytes, chart_bytes = await loop.run_in_executor(None, _sync_run)
 
         updater_task.cancel()
 
@@ -273,6 +289,14 @@ async def _run_analysis(
             text=f"✅ **Анализ завершён** — {mins:02d}:{secs:02d}\n\nОтправляю отчёт...",
             parse_mode=ParseMode.MARKDOWN,
         )
+
+        if chart_bytes:
+            filename_chart = f"ALPHA_INVEST_{ticker}_{date_str}_chart.png"
+            await bot.send_photo(
+                chat_id=chat_id,
+                photo=BufferedInputFile(chart_bytes, filename=filename_chart),
+                caption=f"📈 **{ticker}** — Технический анализ\nСигнал: **{signal}**"
+            )
 
         if pdf_bytes:
             filename = f"ALPHA_INVEST_{ticker}_{date_str}.pdf"

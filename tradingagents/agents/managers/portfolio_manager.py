@@ -61,7 +61,8 @@ def create_portfolio_manager(llm):
 
 ---
 
-Be decisive and ground every conclusion in specific evidence from the analysts.{get_language_instruction()}"""
+Be decisive and ground every conclusion in specific evidence from the analysts.
+IMPORTANT: If your rating implies entering a position (Buy, Overweight, Sell, Underweight), you MUST provide exact numeric values for `entry_price`, `price_target` (Take Profit), and `stop_loss`. These numbers will be plotted on the user's trading chart. Extract these values from the Trader's proposal or the analysts' recommendations.{get_language_instruction()}"""
 
         final_trade_decision = invoke_structured_or_freetext(
             structured_llm,
