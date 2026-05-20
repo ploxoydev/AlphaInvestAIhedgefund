@@ -110,27 +110,11 @@ _HEADER_TEMPLATE = """<!DOCTYPE html>
 def markdown_to_pdf(markdown_text: str, ticker: str, date: str) -> bytes | None:
     """
     Convert markdown report to PDF bytes.
-    Returns None if weasyprint is not installed (caller should send .md instead).
+    Currently disabled (always returns None) due to Weasyprint causing OOM 
+    crashes on Render.com free tier. The bot will fallback to .txt automatically.
     """
-    try:
-        import markdown2
-        from weasyprint import HTML
-    except ImportError:
-        logger.warning("weasyprint or markdown2 not installed — returning None")
-        return None
-
-    try:
-        html_body = markdown2.markdown(
-            markdown_text,
-            extras=["tables", "fenced-code-blocks", "strike", "header-ids"],
-        )
-        full_html = _HEADER_TEMPLATE.format(css=_CSS, body=html_body, date=date)
-
-        pdf_bytes = HTML(string=full_html).write_pdf()
-        return pdf_bytes
-    except Exception as e:
-        logger.error("Failed to generate PDF (possibly missing Pango/Cairo on Render): %s", e)
-        return None
+    logger.warning("PDF generation disabled to prevent OOM crash — returning None")
+    return None
 
 
 def markdown_to_txt(markdown_text: str) -> bytes:
