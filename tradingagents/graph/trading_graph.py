@@ -347,7 +347,16 @@ class TradingAgentsGraph:
         for chunk in self.graph.stream(init_agent_state, **args):
             for node_name, state_update in chunk.items():
                 if self.debug and "messages" in state_update and len(state_update["messages"]) > 0:
-                    state_update["messages"][-1].pretty_print()
+                    try:
+                        state_update["messages"][-1].pretty_print()
+                    except UnicodeEncodeError:
+                        import sys
+                        try:
+                            repr_str = state_update["messages"][-1].pretty_repr()
+                            encoding = sys.stdout.encoding or 'utf-8'
+                            print(repr_str.encode(encoding, errors='replace').decode(encoding))
+                        except Exception:
+                            print(repr(state_update["messages"][-1]))
                 
                 if progress_callback:
                     progress_callback(node_name)
