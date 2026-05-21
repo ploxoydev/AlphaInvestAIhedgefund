@@ -150,7 +150,7 @@ def _rate_limited(user_id: int) -> int | None:
 
 AGENT_LABELS = {
     "Market Analyst":         "📉 Market Analyst",
-    "Sentiment Analyst":      "💬 Sentiment Analyst",
+    "Social Analyst":         "💬 Sentiment Analyst",
     "News Analyst":           "📰 News Analyst",
     "Fundamentals Analyst":   "🏦 Fundamentals Analyst",
     "Multi Timeframe Analyst":"📊 Multi-Timeframe",

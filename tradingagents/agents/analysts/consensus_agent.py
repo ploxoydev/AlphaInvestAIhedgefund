@@ -314,7 +314,7 @@ YOUR TASK
 1. Validate (or gently challenge) the quantitative signal using the qualitative
    evidence in the multi-timeframe report.
 2. Write a structured **Consensus Report** with these sections:
-   a) **📊 Weighted Vote Summary** — reproduce the score table above in Markdown.
+   a) **📊 Weighted Vote Summary** — reproduce the score table above as a neat bulleted list (including timeframe, direction, weight, and calculated vote).
    b) **🎯 Consensus Signal** — state the signal ({action}) and explain why the
       weighted score of {score:+d} is or is not fully supported by the qualitative evidence.
    c) **⚠️ Timeframe Conflicts** — describe any conflicts and their implications
@@ -325,6 +325,7 @@ YOUR TASK
    e) **🔮 Key Risk Scenarios** — two bullet points: one bull-case, one bear-case.
 
 Be concise but precise. Quote indicator values from the report where relevant.
+CRITICAL INSTRUCTION: DO NOT output any markdown tables under any circumstances; instead, present all structured summaries and tables as neat, readable bulleted lists.
 {lang_instruction}
 """
 
