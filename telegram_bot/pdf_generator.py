@@ -117,6 +117,52 @@ def markdown_to_pdf(markdown_text: str, ticker: str, date: str) -> bytes | None:
     return None
 
 
+def sanitize_repetition_loops(text: str) -> str:
+    """Detect and clean up infinite token generation loops (like repeating spaces, dashes, dots, or tables)."""
+    import re
+    # 1. Fix repeating lines of dashes/colons/pipes (often generated in markdown table loops)
+    # If a line like "----" or ":----" or "|----" is repeated more than 3 times sequentially, keep only 1
+    lines = text.split("\n")
+    cleaned_lines = []
+    prev_line = None
+    repeat_count = 0
+    for line in lines:
+        stripped = line.strip()
+        # Is it a markdown table border or dash separator line?
+        is_dash_or_separator = len(stripped) > 3 and all(c in "-:| " for c in stripped)
+        # Is it mostly empty spaces?
+        is_empty_or_spaces = not stripped
+        
+        if is_dash_or_separator or is_empty_or_spaces:
+            if stripped == prev_line:
+                repeat_count += 1
+                if repeat_count > 2:
+                    continue # Skip repeating lines
+            else:
+                prev_line = stripped
+                repeat_count = 1
+        else:
+            prev_line = None
+            repeat_count = 0
+            
+        cleaned_lines.append(line)
+        
+    text = "\n".join(cleaned_lines)
+    
+    # 2. Fix inline repeating patterns (e.g. "--------------------------------------...")
+    # Replace more than 30 consecutive dashes with a standard markdown separator
+    text = re.sub(r'-{30,}', '---', text)
+    
+    # 3. Replace long runs of spaces (e.g. more than 30 spaces)
+    text = re.sub(r' {30,}', ' ', text)
+    
+    # 4. Remove multiple empty lines (limit to max 3 consecutive newlines)
+    text = re.sub(r'\n{4,}', '\n\n\n', text)
+    
+    return text
+
+
 def markdown_to_txt(markdown_text: str) -> bytes:
     """Fallback: return markdown as UTF-8 encoded bytes (plain text file)."""
-    return markdown_text.encode("utf-8")
+    cleaned_text = sanitize_repetition_loops(markdown_text)
+    return cleaned_text.encode("utf-8")

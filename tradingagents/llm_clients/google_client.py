@@ -100,9 +100,11 @@ class GoogleClient(BaseLLMClient):
         if self.base_url:
             llm_kwargs["base_url"] = self.base_url
 
-        for key in ("timeout", "max_retries", "callbacks", "http_client", "http_async_client"):
+        for key in ("timeout", "max_retries", "callbacks", "http_client", "http_async_client", "temperature"):
             if key in self.kwargs:
                 llm_kwargs[key] = self.kwargs[key]
+        if "temperature" not in llm_kwargs:
+            llm_kwargs["temperature"] = 0.2
 
         # Unified api_key maps to provider-specific google_api_key
         google_api_key = self.kwargs.get("api_key") or self.kwargs.get("google_api_key")

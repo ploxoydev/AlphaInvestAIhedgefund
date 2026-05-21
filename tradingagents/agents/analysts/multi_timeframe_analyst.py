@@ -139,14 +139,14 @@ For EACH timeframe, output:
   3. **Key Evidence**: 2-4 bullet points citing specific indicator values
   4. **Actionable Insight**: one sentence a trader can act on
 
-After analyzing all four timeframes, produce a **Multi-Timeframe Summary Table** in Markdown
-with columns: Timeframe | Trend | Confidence | Key Signal
+After analyzing all four timeframes, produce a **Multi-Timeframe Summary Bulleted List**
+with details for each timeframe: Timeframe, Trend, Confidence, and Key Signal.
 
 Finally, write a **Composite Directional Bias** paragraph (3-5 sentences) that synthesizes
 all four timeframes into a single forward-looking view, noting any timeframe conflicts.
 
 Be precise — quote exact indicator values. Be actionable.
-CRITICAL INSTRUCTION: DO NOT copy, paste, or output the raw OHLCV CSV data or large blocks of numbers in your report. Provide ONLY your analysis, insights, and the final table.
+CRITICAL INSTRUCTION: DO NOT copy, paste, or output the raw OHLCV CSV data or large blocks of numbers in your report. Provide ONLY your analysis, insights, and the final summary. DO NOT output any markdown tables under any circumstances; instead, present all structured summaries and metrics as neat, readable bulleted lists.
 
 CRITICAL — you MUST end your entire response with the following VOTE_BLOCK.
 Replace each VALUE with exactly one word: Bullish, Neutral, or Bearish.

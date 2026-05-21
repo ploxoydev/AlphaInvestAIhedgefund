@@ -157,7 +157,7 @@ Produce a sentiment report covering, in order:
 2. **Source-by-source breakdown** — what each of news / StockTwits / Reddit is telling you, with specific evidence (cite message counts, ratios, notable posts).
 3. **Divergences, alignments, and key narratives** across sources.
 4. **Catalysts and risks** surfaced by the data.
-5. **Markdown table** at the end summarizing key sentiment signals, their direction, source, and supporting evidence.
+5. **Summary Bulleted List** at the end summarizing key sentiment signals, their direction, source, and supporting evidence. CRITICAL INSTRUCTION: DO NOT output any markdown tables under any circumstances; instead, present all structured summaries and metrics as neat, readable bulleted lists.
 
 {get_language_instruction()}"""
 
