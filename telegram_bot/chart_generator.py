@@ -12,7 +12,10 @@ def generate_chart_with_levels(ticker: str, entry: float = None, tp: float = Non
     Returns the chart image as PNG bytes.
     """
     try:
+        import matplotlib
+        matplotlib.use('Agg') # Ensure headless rendering on server
         import yfinance as yf
+        import pandas as pd
         import mplfinance as mpf
     except ImportError:
         logger.warning("mplfinance or yfinance not installed — skipping chart generation.")
@@ -27,6 +30,10 @@ def generate_chart_with_levels(ticker: str, entry: float = None, tp: float = Non
         clean_ticker = ticker.split(" ")[0].strip()
         
         df = yf.download(clean_ticker, start=start_date.strftime("%Y-%m-%d"), end=end_date.strftime("%Y-%m-%d"), progress=False)
+        
+        # Fix yfinance returning MultiIndex in newer versions
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
         
         if df.empty:
             logger.warning(f"No data found for ticker {ticker} to draw chart.")

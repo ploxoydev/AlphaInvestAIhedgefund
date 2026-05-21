@@ -146,6 +146,7 @@ Finally, write a **Composite Directional Bias** paragraph (3-5 sentences) that s
 all four timeframes into a single forward-looking view, noting any timeframe conflicts.
 
 Be precise — quote exact indicator values. Be actionable.
+CRITICAL INSTRUCTION: DO NOT copy, paste, or output the raw OHLCV CSV data or large blocks of numbers in your report. Provide ONLY your analysis, insights, and the final table.
 
 CRITICAL — you MUST end your entire response with the following VOTE_BLOCK.
 Replace each VALUE with exactly one word: Bullish, Neutral, or Bearish.
