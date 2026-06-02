@@ -34,6 +34,8 @@ GOOGLE_API_KEYS: list[str] = [k for k in [
 FALLBACK_MODELS: list[str] = [
     "gemini-2.5-flash",      # 20 RPM / 250k TPM  (new & old projects)
     "gemini-2.5-flash-lite", # lighter, higher limits
+    "gemini-1.5-flash-8b",   # legacy, very high limits
+    "gemini-1.5-pro",        # legacy pro model
 ]
 
 # Primary model defaults (first in rotation list)
