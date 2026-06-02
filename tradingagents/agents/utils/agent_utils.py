@@ -36,23 +36,10 @@ def get_language_instruction() -> str:
     return f" Write your entire response in {lang}."
 
 
-_price_cache = {}
-
 def build_instrument_context(ticker: str) -> str:
     """Describe the exact instrument so agents preserve exchange-qualified tickers."""
-    global _price_cache
-    price_info = ""
-    try:
-        import yfinance as yf
-        if ticker not in _price_cache:
-            current_price = yf.Ticker(ticker).history(period="1d")["Close"].iloc[-1]
-            _price_cache[ticker] = f" The current market price of {ticker} is approximately ${current_price:.2f}."
-        price_info = _price_cache[ticker]
-    except Exception:
-        pass
-
     return (
-        f"The instrument to analyze is `{ticker}`.{price_info} "
+        f"The instrument to analyze is `{ticker}`. "
         "Use this exact ticker in every tool call, report, and recommendation, "
         "preserving any exchange suffix (e.g. `.TO`, `.L`, `.HK`, `.T`)."
     )
