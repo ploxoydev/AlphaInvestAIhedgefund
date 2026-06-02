@@ -33,7 +33,8 @@ def create_trader(llm):
                     "Based on your analysis, provide a specific recommendation to buy, sell, or hold. "
                     "Anchor your reasoning in the analysts' reports and the research plan.\n"
                     "IMPORTANT: If your decision involves entering a position, you MUST explicitly provide "
-                    "numeric values for Entry Price, Price Target (Take Profit), and Stop Loss."
+                    "numeric values for Entry Price, Price Target (Take Profit), and Stop Loss. "
+                    "These MUST be absolute price levels (e.g. 150.50), NEVER percentages or relative drops."
                     + get_language_instruction()
                 ),
             },
