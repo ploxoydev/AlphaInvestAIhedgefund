@@ -79,14 +79,16 @@ def generate_chart_with_levels(ticker: str, entry: float = None, tp: float = Non
         # Add labels to lines if possible
         if hlines and axes:
             ax = axes[0]
-            # Text coordinates are tricky in matplotlib, usually placed at right edge
-            x_pos = len(df) - 1
+            # Move text 15 candles to the left to avoid overlapping the right y-axis and hiding prices
+            x_pos = max(0, len(df) - 15)
+            
+            bbox_style = dict(facecolor='white', alpha=0.85, edgecolor='none', pad=3)
             if tp is not None:
-                ax.text(x_pos, float(tp), ' TP ', color='green', verticalalignment='bottom', horizontalalignment='right', fontsize=9, fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+                ax.text(x_pos, float(tp), ' TP ', color='green', verticalalignment='bottom', horizontalalignment='right', fontsize=10, fontweight='bold', bbox=bbox_style)
             if entry is not None:
-                ax.text(x_pos, float(entry), ' Entry ', color='blue', verticalalignment='bottom', horizontalalignment='right', fontsize=9, fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+                ax.text(x_pos, float(entry), ' Entry ', color='blue', verticalalignment='bottom', horizontalalignment='right', fontsize=10, fontweight='bold', bbox=bbox_style)
             if sl is not None:
-                ax.text(x_pos, float(sl), ' SL ', color='red', verticalalignment='top', horizontalalignment='right', fontsize=9, fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+                ax.text(x_pos, float(sl), ' SL ', color='red', verticalalignment='top', horizontalalignment='right', fontsize=10, fontweight='bold', bbox=bbox_style)
 
         # Save to bytes buffer
         buf = io.BytesIO()
