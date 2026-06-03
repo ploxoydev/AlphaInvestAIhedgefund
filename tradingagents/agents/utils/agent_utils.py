@@ -38,10 +38,18 @@ def get_language_instruction() -> str:
 
 def build_instrument_context(ticker: str) -> str:
     """Describe the exact instrument so agents preserve exchange-qualified tickers."""
+    try:
+        import yfinance as yf
+        price = yf.Ticker(ticker).fast_info['last_price']
+        price_str = f" As of right now, the exact real-time market price of {ticker} is {price:.2f}. You MUST anchor all your price targets, entry points, and stop losses strictly around this true market price, NEVER using outdated historical data or DCF intrinsic values as current prices."
+    except Exception:
+        price_str = ""
+
     return (
         f"The instrument to analyze is `{ticker}`. "
         "Use this exact ticker in every tool call, report, and recommendation, "
         "preserving any exchange suffix (e.g. `.TO`, `.L`, `.HK`, `.T`)."
+        f"{price_str}"
     )
 
 def create_msg_delete():
