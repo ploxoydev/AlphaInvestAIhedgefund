@@ -94,7 +94,7 @@ def generate_chart_with_levels(ticker: str, entry: float = None, tp: float = Non
 
         # Save to bytes buffer
         buf = io.BytesIO()
-        fig.savefig(buf, format='png', dpi=120)
+        fig.savefig(buf, format='png', dpi=120, bbox_inches='tight', pad_inches=0.2)
         buf.seek(0)
         
         # Free memory
